@@ -66,11 +66,11 @@ host (GitHub Pages, Netlify, Vercel, etc).
 
 ## Contributing
 
-Issues and pull requests are welcome! Some ideas for contributions:
+Issues and pull requests are welcome! See [`CLAUDE.md`](./CLAUDE.md) for
+the current roadmap — the two big-picture priorities right now are a more
+fun/unique UI and a single-player AI opponent. Other ideas:
 
 - Online/remote multiplayer (instead of hot-seat)
-- AI opponent for solo play
-- Animations for the reveal
 - Game history / replay view
 
 ## License
