@@ -371,6 +371,102 @@ h1 {
   transform: rotate(180deg);
 }
 
+/* Motion */
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card--enter {
+  animation: cardEnter 0.25s ease-out;
+}
+
+@keyframes cardFlipReveal {
+  from {
+    transform: rotateY(90deg) scale(0.85);
+    opacity: 0.2;
+  }
+  to {
+    transform: rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.card--flip-reveal {
+  animation: cardFlipReveal 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transform-style: preserve-3d;
+}
+
+@keyframes scoreBump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+    color: #ffcf5c;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.score__value--bump {
+  animation: scoreBump 0.45s ease-out;
+  display: inline-block;
+}
+
+@keyframes winnerPop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.winner-banner--pop {
+  animation: winnerPop 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+@keyframes confettiFall {
+  from {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.confetti__piece {
+  position: absolute;
+  top: 0;
+  font-size: 1.5rem;
+  animation-name: confettiFall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
 @media (max-width: 480px) {
   h1 {
     font-size: 1.6rem;

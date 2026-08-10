@@ -7,6 +7,7 @@ interface CardProps {
   size?: 'sm' | 'md' | 'lg'
   selected?: boolean
   dimmed?: boolean
+  flipReveal?: boolean
   onClick?: () => void
 }
 
@@ -17,11 +18,13 @@ export default function Card({
   size = 'md',
   selected = false,
   dimmed = false,
+  flipReveal = false,
   onClick,
 }: CardProps) {
   const classes = [
     'card',
     `card--${size}`,
+    flipReveal ? 'card--flip-reveal' : 'card--enter',
     faceDown ? 'card--back' : '',
     selected ? 'card--selected' : '',
     dimmed ? 'card--dimmed' : '',

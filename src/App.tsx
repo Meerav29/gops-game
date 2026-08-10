@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Card from './Card'
 import { cardLabel } from './cardLabel'
 import {
@@ -192,23 +192,24 @@ function RevealScreen({
 
   return (
     <div className="screen center">
+      {winnerName && <Confetti />}
       <p className="round-label">Reveal!</p>
       <div className="reveal-row">
         <div className="reveal-col">
           <span>{state.p1Name}</span>
-          <Card value={last.p1Bid} suit="♥" size="md" />
+          <Card value={last.p1Bid} suit="♥" size="md" flipReveal />
         </div>
         <div className="reveal-vs">vs</div>
         <div className="reveal-col">
           <span>{state.p2Name}</span>
-          <Card value={last.p2Bid} suit="♦" size="md" />
+          <Card value={last.p2Bid} suit="♦" size="md" flipReveal />
         </div>
       </div>
       <p className="prize-note">
         Prize: {cardLabel(last.prizeValue)} ({last.prizeValue} pts)
       </p>
       {winnerName ? (
-        <p className="winner-banner">🏆 {winnerName} wins this round!</p>
+        <p className="winner-banner winner-banner--pop">🏆 {winnerName} wins this round!</p>
       ) : (
         <p className="winner-banner tie">🤝 Tie! Prize carries over.</p>
       )}
@@ -216,6 +217,36 @@ function RevealScreen({
       <button className="btn btn--primary btn--big" onClick={onNext}>
         {state.prizeDeck.length === 0 ? 'See Final Score' : 'Next Round'}
       </button>
+    </div>
+  )
+}
+
+const CONFETTI_EMOJI = ['🎉', '✨', '🎊', '⭐']
+
+function Confetti() {
+  const pieces = Array.from({ length: 16 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 0.3,
+    duration: 0.9 + Math.random() * 0.6,
+    emoji: CONFETTI_EMOJI[i % CONFETTI_EMOJI.length],
+  }))
+
+  return (
+    <div className="confetti" aria-hidden="true">
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="confetti__piece"
+          style={{
+            left: `${p.left}%`,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+          }}
+        >
+          {p.emoji}
+        </span>
+      ))}
     </div>
   )
 }
@@ -251,16 +282,39 @@ function GameOverScreen({
   )
 }
 
+function useScoreBump(score: number) {
+  const [bump, setBump] = useState(false)
+  const prev = useRef(score)
+
+  useEffect(() => {
+    if (score !== prev.current) {
+      prev.current = score
+      setBump(true)
+      const t = setTimeout(() => setBump(false), 450)
+      return () => clearTimeout(t)
+    }
+  }, [score])
+
+  return bump
+}
+
 function Scoreboard({ state, big = false }: { state: GameState; big?: boolean }) {
+  const p1Bump = useScoreBump(state.p1Score)
+  const p2Bump = useScoreBump(state.p2Score)
+
   return (
     <div className={big ? 'scoreboard scoreboard--big' : 'scoreboard'}>
       <div className="score">
         <span className="score__name">{state.p1Name}</span>
-        <span className="score__value">{state.p1Score}</span>
+        <span className={p1Bump ? 'score__value score__value--bump' : 'score__value'}>
+          {state.p1Score}
+        </span>
       </div>
       <div className="score">
         <span className="score__name">{state.p2Name}</span>
-        <span className="score__value">{state.p2Score}</span>
+        <span className={p2Bump ? 'score__value score__value--bump' : 'score__value'}>
+          {state.p2Score}
+        </span>
       </div>
     </div>
   )
