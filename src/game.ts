@@ -1,4 +1,5 @@
 export type DeckSize = 10 | 13
+export type AIDifficulty = 'easy' | 'medium' | 'hard'
 
 export interface RoundResult {
   prizeValue: number
@@ -32,6 +33,7 @@ export interface GameState {
   p2Bid: number | null
   history: RoundResult[]
   vsAI: boolean
+  aiDifficulty: AIDifficulty
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -54,6 +56,7 @@ export function createInitialState(
   p1Name: string,
   p2Name: string,
   vsAI = false,
+  aiDifficulty: AIDifficulty = 'medium',
 ): GameState {
   return {
     phase: 'prize-reveal',
@@ -71,16 +74,22 @@ export function createInitialState(
     p2Bid: null,
     history: [],
     vsAI,
+    aiDifficulty,
   }
 }
 
+/** Picks a uniformly random card from hand — no strategy at all. */
+function chooseAIBidEasy(hand: number[]): number {
+  return hand[Math.floor(Math.random() * hand.length)]
+}
+
 /**
- * Picks a bid for the AI opponent. Both hands are fully known (decks are
- * pre-determined), so the AI weighs its bid toward the prize's rank among
- * its own remaining cards, with a chance to bluff low on cheap prizes and
- * some jitter so it isn't perfectly predictable.
+ * Weighs its bid toward the prize's rank among its own remaining cards,
+ * with a chance to bluff low on cheap prizes and some jitter so it isn't
+ * perfectly predictable. This was the original (and still default)
+ * AI behavior.
  */
-export function chooseAIBid(
+function chooseAIBidMedium(
   hand: number[],
   prizeValue: number,
   deckSize: number,
@@ -97,6 +106,55 @@ export function chooseAIBid(
   const jitter = Math.floor(Math.random() * 3) - 1 // -1, 0, or 1
   const idx = Math.min(lastIdx, Math.max(0, targetIdx + jitter))
   return sorted[idx]
+}
+
+/**
+ * Plays closer to the equilibrium strategy for Goofspiel: since both
+ * hands are fully public (decks are pre-determined), it ranks the
+ * current prize against every prize still left in the deck (including
+ * itself) rather than a fixed scale, so its bidding adapts as high-
+ * or low-value prizes get used up. It spends its highest card outright
+ * on the single most valuable prize remaining, otherwise matches the
+ * prize's percentile rank in its own hand with minimal randomness —
+ * no bluffing, and only rare +/-1 jitter to stay slightly unpredictable.
+ */
+function chooseAIBidHard(
+  hand: number[],
+  prizeValue: number,
+  remainingPrizes: number[],
+): number {
+  const sorted = [...hand].sort((a, b) => a - b)
+  const lastIdx = sorted.length - 1
+
+  const allRemaining = [prizeValue, ...remainingPrizes]
+  if (prizeValue === Math.max(...allRemaining)) {
+    return sorted[lastIdx]
+  }
+
+  const rank = allRemaining.filter((v) => v <= prizeValue).length
+  const percentile = rank / allRemaining.length
+  const targetIdx = Math.round(percentile * lastIdx)
+  const jitter = Math.random() < 0.15 ? (Math.random() < 0.5 ? -1 : 1) : 0
+  const idx = Math.min(lastIdx, Math.max(0, targetIdx + jitter))
+  return sorted[idx]
+}
+
+export function chooseAIBid(
+  hand: number[],
+  prizeValue: number,
+  deckSize: number,
+  difficulty: AIDifficulty,
+  remainingPrizes: number[] = [],
+): number {
+  switch (difficulty) {
+    case 'easy':
+      return chooseAIBidEasy(hand)
+    case 'hard':
+      return chooseAIBidHard(hand, prizeValue, remainingPrizes)
+    case 'medium':
+    default:
+      return chooseAIBidMedium(hand, prizeValue, deckSize)
+  }
 }
 
 export function flipPrize(state: GameState): GameState {
@@ -122,6 +180,8 @@ export function submitP1Bid(state: GameState, bid: number): GameState {
       afterP1.p2Hand,
       state.currentPrize as number,
       state.deckSize,
+      state.aiDifficulty,
+      state.prizeDeck,
     )
     return submitP2Bid({ ...afterP1, phase: 'p2-bid' }, aiBid)
   }
