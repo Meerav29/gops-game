@@ -8,19 +8,33 @@ import {
   proceedToP2,
   submitP1Bid,
   submitP2Bid,
+  type AIDifficulty,
   type DeckSize,
   type GameState,
 } from './game'
 
+const AI_DIFFICULTIES: { value: AIDifficulty; label: string }[] = [
+  { value: 'easy', label: '🙂 Easy' },
+  { value: 'medium', label: '😐 Medium' },
+  { value: 'hard', label: '😈 Hard' },
+]
+
 function SetupScreen({
   onStart,
 }: {
-  onStart: (deckSize: DeckSize, p1: string, p2: string, vsAI: boolean) => void
+  onStart: (
+    deckSize: DeckSize,
+    p1: string,
+    p2: string,
+    vsAI: boolean,
+    aiDifficulty: AIDifficulty,
+  ) => void
 }) {
   const [deckSize, setDeckSize] = useState<DeckSize>(13)
   const [p1, setP1] = useState('')
   const [p2, setP2] = useState('')
   const [vsAI, setVsAI] = useState(false)
+  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('medium')
 
   return (
     <div className="screen setup">
@@ -46,6 +60,23 @@ function SetupScreen({
           </button>
         </div>
       </div>
+
+      {vsAI && (
+        <div className="setup__field">
+          <label>AI difficulty</label>
+          <div className="deck-choice">
+            {AI_DIFFICULTIES.map((d) => (
+              <button
+                key={d.value}
+                className={aiDifficulty === d.value ? 'chip chip--active' : 'chip'}
+                onClick={() => setAiDifficulty(d.value)}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="setup__field">
         <label>Player 1 name</label>
@@ -88,7 +119,7 @@ function SetupScreen({
 
       <button
         className="btn btn--primary btn--big"
-        onClick={() => onStart(deckSize, p1, p2, vsAI)}
+        onClick={() => onStart(deckSize, p1, p2, vsAI, aiDifficulty)}
       >
         Start Game
       </button>
@@ -347,8 +378,8 @@ export default function App() {
   if (!state) {
     return (
       <SetupScreen
-        onStart={(deckSize, p1, p2, vsAI) =>
-          setState(createInitialState(deckSize, p1, p2, vsAI))
+        onStart={(deckSize, p1, p2, vsAI, aiDifficulty) =>
+          setState(createInitialState(deckSize, p1, p2, vsAI, aiDifficulty))
         }
       />
     )
