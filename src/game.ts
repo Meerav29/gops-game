@@ -31,6 +31,7 @@ export interface GameState {
   p1Bid: number | null
   p2Bid: number | null
   history: RoundResult[]
+  vsAI: boolean
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -52,12 +53,13 @@ export function createInitialState(
   deckSize: DeckSize,
   p1Name: string,
   p2Name: string,
+  vsAI = false,
 ): GameState {
   return {
     phase: 'prize-reveal',
     deckSize,
     p1Name: p1Name.trim() || 'Player 1',
-    p2Name: p2Name.trim() || 'Player 2',
+    p2Name: vsAI ? 'AI Opponent' : p2Name.trim() || 'Player 2',
     p1Hand: range(deckSize),
     p2Hand: range(deckSize),
     prizeDeck: shuffle(range(deckSize)),
@@ -68,7 +70,33 @@ export function createInitialState(
     p1Bid: null,
     p2Bid: null,
     history: [],
+    vsAI,
   }
+}
+
+/**
+ * Picks a bid for the AI opponent. Both hands are fully known (decks are
+ * pre-determined), so the AI weighs its bid toward the prize's rank among
+ * its own remaining cards, with a chance to bluff low on cheap prizes and
+ * some jitter so it isn't perfectly predictable.
+ */
+export function chooseAIBid(
+  hand: number[],
+  prizeValue: number,
+  deckSize: number,
+): number {
+  const sorted = [...hand].sort((a, b) => a - b)
+  const lastIdx = sorted.length - 1
+
+  if (prizeValue <= 2 && Math.random() < 0.5) {
+    return sorted[0]
+  }
+
+  const percentile = prizeValue / deckSize
+  const targetIdx = Math.round(percentile * lastIdx)
+  const jitter = Math.floor(Math.random() * 3) - 1 // -1, 0, or 1
+  const idx = Math.min(lastIdx, Math.max(0, targetIdx + jitter))
+  return sorted[idx]
 }
 
 export function flipPrize(state: GameState): GameState {
@@ -82,12 +110,23 @@ export function flipPrize(state: GameState): GameState {
 }
 
 export function submitP1Bid(state: GameState, bid: number): GameState {
-  return {
+  const afterP1: GameState = {
     ...state,
     p1Bid: bid,
     p1Hand: state.p1Hand.filter((c) => c !== bid),
     phase: 'pass-to-p2',
   }
+
+  if (state.vsAI) {
+    const aiBid = chooseAIBid(
+      afterP1.p2Hand,
+      state.currentPrize as number,
+      state.deckSize,
+    )
+    return submitP2Bid({ ...afterP1, phase: 'p2-bid' }, aiBid)
+  }
+
+  return afterP1
 }
 
 export function proceedToP2(state: GameState): GameState {

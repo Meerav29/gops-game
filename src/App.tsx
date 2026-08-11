@@ -15,11 +15,12 @@ import {
 function SetupScreen({
   onStart,
 }: {
-  onStart: (deckSize: DeckSize, p1: string, p2: string) => void
+  onStart: (deckSize: DeckSize, p1: string, p2: string, vsAI: boolean) => void
 }) {
   const [deckSize, setDeckSize] = useState<DeckSize>(13)
   const [p1, setP1] = useState('')
   const [p2, setP2] = useState('')
+  const [vsAI, setVsAI] = useState(false)
 
   return (
     <div className="screen setup">
@@ -27,6 +28,24 @@ function SetupScreen({
         🎴 GOPS <span className="subtitle">Game of Pure Strategy</span>
       </h1>
       <p className="tagline">No luck after the flip. Just mind games. 😈</p>
+
+      <div className="setup__field">
+        <label>Opponent</label>
+        <div className="deck-choice">
+          <button
+            className={!vsAI ? 'chip chip--active' : 'chip'}
+            onClick={() => setVsAI(false)}
+          >
+            👥 2 Players
+          </button>
+          <button
+            className={vsAI ? 'chip chip--active' : 'chip'}
+            onClick={() => setVsAI(true)}
+          >
+            🤖 vs AI
+          </button>
+        </div>
+      </div>
 
       <div className="setup__field">
         <label>Player 1 name</label>
@@ -37,15 +56,17 @@ function SetupScreen({
           maxLength={20}
         />
       </div>
-      <div className="setup__field">
-        <label>Player 2 name</label>
-        <input
-          value={p2}
-          onChange={(e) => setP2(e.target.value)}
-          placeholder="Player 2"
-          maxLength={20}
-        />
-      </div>
+      {!vsAI && (
+        <div className="setup__field">
+          <label>Player 2 name</label>
+          <input
+            value={p2}
+            onChange={(e) => setP2(e.target.value)}
+            placeholder="Player 2"
+            maxLength={20}
+          />
+        </div>
+      )}
 
       <div className="setup__field">
         <label>Game length</label>
@@ -67,7 +88,7 @@ function SetupScreen({
 
       <button
         className="btn btn--primary btn--big"
-        onClick={() => onStart(deckSize, p1, p2)}
+        onClick={() => onStart(deckSize, p1, p2, vsAI)}
       >
         Start Game
       </button>
@@ -326,8 +347,8 @@ export default function App() {
   if (!state) {
     return (
       <SetupScreen
-        onStart={(deckSize, p1, p2) =>
-          setState(createInitialState(deckSize, p1, p2))
+        onStart={(deckSize, p1, p2, vsAI) =>
+          setState(createInitialState(deckSize, p1, p2, vsAI))
         }
       />
     )
