@@ -14,9 +14,9 @@ import {
 } from './game'
 
 const AI_DIFFICULTIES: { value: AIDifficulty; label: string }[] = [
-  { value: 'easy', label: '🙂 Easy' },
-  { value: 'medium', label: '😐 Medium' },
-  { value: 'hard', label: '😈 Hard' },
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
 ]
 
 function SetupScreen({
@@ -39,9 +39,9 @@ function SetupScreen({
   return (
     <div className="screen setup">
       <h1>
-        🎴 GOPS <span className="subtitle">Game of Pure Strategy</span>
+        GOPS <span className="subtitle">Game of Pure Strategy</span>
       </h1>
-      <p className="tagline">No luck after the flip. Just mind games. 😈</p>
+      <p className="tagline">No luck after the flip. Just mind games.</p>
 
       <div className="setup__field">
         <label>Opponent</label>
@@ -50,13 +50,13 @@ function SetupScreen({
             className={!vsAI ? 'chip chip--active' : 'chip'}
             onClick={() => setVsAI(false)}
           >
-            👥 2 Players
+            2 Players
           </button>
           <button
             className={vsAI ? 'chip chip--active' : 'chip'}
             onClick={() => setVsAI(true)}
           >
-            🤖 vs AI
+            vs AI
           </button>
         </div>
       </div>
@@ -154,7 +154,7 @@ function PrizeRevealScreen({
       <p className="prompt">Flip the next prize card</p>
       <Card value={0} faceDown size="lg" onClick={onFlip} />
       {state.pot > 0 && (
-        <p className="pot-note">🤝 {state.pot} points carried over from a tie!</p>
+        <p className="pot-note">{state.pot} points carried over from a tie</p>
       )}
     </div>
   )
@@ -216,10 +216,10 @@ function PassScreen({
 }) {
   return (
     <div className="screen center">
-      <p className="pass-icon">🔄</p>
+      <div className="pass-icon" />
       <h2>Pass the device to</h2>
       <h1 className="pass-name">{nextPlayerName}</h1>
-      <p className="prompt">Don't peek! 🙈</p>
+      <p className="prompt">Don't peek</p>
       <button className="btn btn--primary btn--big" onClick={onReady}>
         I'm Ready
       </button>
@@ -261,9 +261,9 @@ function RevealScreen({
         Prize: {cardLabel(last.prizeValue)} ({last.prizeValue} pts)
       </p>
       {winnerName ? (
-        <p className="winner-banner winner-banner--pop">🏆 {winnerName} wins this round!</p>
+        <p className="winner-banner winner-banner--pop">{winnerName} wins this round</p>
       ) : (
-        <p className="winner-banner tie">🤝 Tie! Prize carries over.</p>
+        <p className="winner-banner tie">Tie — prize carries over</p>
       )}
       <Scoreboard state={state} />
       <button className="btn btn--primary btn--big" onClick={onNext}>
@@ -273,15 +273,12 @@ function RevealScreen({
   )
 }
 
-const CONFETTI_EMOJI = ['🎉', '✨', '🎊', '⭐']
-
 function Confetti() {
-  const pieces = Array.from({ length: 16 }, (_, i) => ({
+  const pieces = Array.from({ length: 20 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 0.3,
     duration: 0.9 + Math.random() * 0.6,
-    emoji: CONFETTI_EMOJI[i % CONFETTI_EMOJI.length],
   }))
 
   return (
@@ -295,9 +292,7 @@ function Confetti() {
             animationDelay: `${p.delay}s`,
             animationDuration: `${p.duration}s`,
           }}
-        >
-          {p.emoji}
-        </span>
+        />
       ))}
     </div>
   )
@@ -319,12 +314,12 @@ function GameOverScreen({
 
   return (
     <div className="screen center">
-      <p className="pass-icon">🏁</p>
+      <div className="pass-icon" />
       <h1>Game Over</h1>
       {winner ? (
-        <h2 className="winner-banner">🎉 {winner} wins the game!</h2>
+        <h2 className="winner-banner">{winner} wins the game</h2>
       ) : (
-        <h2 className="winner-banner tie">🤝 It's a tie!</h2>
+        <h2 className="winner-banner tie">It's a tie</h2>
       )}
       <Scoreboard state={state} big />
       <button className="btn btn--primary btn--big" onClick={onRestart}>
@@ -350,6 +345,10 @@ function useScoreBump(score: number) {
   return bump
 }
 
+function initials(name: string) {
+  return name.trim().slice(0, 1).toUpperCase() || '?'
+}
+
 function Scoreboard({ state, big = false }: { state: GameState; big?: boolean }) {
   const p1Bump = useScoreBump(state.p1Score)
   const p2Bump = useScoreBump(state.p2Score)
@@ -357,12 +356,14 @@ function Scoreboard({ state, big = false }: { state: GameState; big?: boolean })
   return (
     <div className={big ? 'scoreboard scoreboard--big' : 'scoreboard'}>
       <div className="score">
+        <span className="score__avatar">{initials(state.p1Name)}</span>
         <span className="score__name">{state.p1Name}</span>
         <span className={p1Bump ? 'score__value score__value--bump' : 'score__value'}>
           {state.p1Score}
         </span>
       </div>
       <div className="score">
+        <span className="score__avatar">{initials(state.p2Name)}</span>
         <span className="score__name">{state.p2Name}</span>
         <span className={p2Bump ? 'score__value score__value--bump' : 'score__value'}>
           {state.p2Score}
