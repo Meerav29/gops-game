@@ -61,61 +61,199 @@ h1 {
   margin: 0 0 0.5rem;
 }
 
-.setup {
-  background: var(--bg-alt);
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-}
+/* ---------- Landing / setup screen ---------- */
 
-.setup__field {
+.setup-page {
   width: 100%;
-  text-align: left;
-  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
-.setup__field label {
-  display: block;
-  font-size: 0.85rem;
+.setup-bg {
+  position: fixed;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(70px);
+  background:
+    radial-gradient(38% 34% at 22% 22%, rgba(124, 92, 255, 0.28), transparent 70%),
+    radial-gradient(42% 38% at 82% 28%, rgba(255, 176, 32, 0.16), transparent 70%),
+    radial-gradient(40% 40% at 55% 90%, rgba(90, 200, 180, 0.14), transparent 70%);
+}
+
+.setup-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.setup-heading {
+  text-align: center;
+}
+
+.setup-eyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-dim);
-  margin-bottom: 0.35rem;
 }
 
-.setup__field input {
+.setup-heading h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: -0.01em;
+}
+
+.setup-panel {
   width: 100%;
-  padding: 0.65rem 0.85rem;
-  border-radius: 10px;
-  border: 1px solid #3a4160;
-  background: var(--surface);
+  background: #0a0a0c;
+  border-radius: 34px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.setup-players {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: linear-gradient(140deg, #3a3a42, #232327);
   color: var(--text);
-  font-size: 1rem;
+  flex-shrink: 0;
 }
 
-.setup__field input:focus {
-  outline: 2px solid var(--accent);
+.avatar--ai {
+  background: linear-gradient(140deg, var(--accent), #4b3a9c);
 }
 
-.deck-choice {
+.vs {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.player-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-field input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0;
+}
+
+.player-field input::placeholder {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.player-field input:focus {
+  outline: none;
+}
+
+.setup-hand {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.pill-row {
   display: flex;
   gap: 0.5rem;
 }
 
-.chip {
+.pill {
   flex: 1;
-  padding: 0.6rem;
-  border-radius: 10px;
-  border: 1px solid #3a4160;
-  background: var(--surface);
-  color: var(--text);
+  border: none;
+  border-radius: 999px;
+  background: #1c1c20;
+  color: var(--text-dim);
+  padding: 0.7rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: center;
   cursor: pointer;
-  font-size: 0.9rem;
 }
 
-.chip--active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
+.pill--active {
+  background: #2c2c33;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.cta {
+  border: none;
+  border-radius: 999px;
+  background: var(--text);
+  color: #0a0a0c;
+  padding: 0.9rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.setup-rules {
+  width: 100%;
+  text-align: left;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+}
+
+.setup-rules summary {
+  cursor: pointer;
+  color: var(--accent-2);
   font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.setup-rules ul {
+  padding-left: 1.2rem;
+  line-height: 1.5;
 }
 
 .btn {

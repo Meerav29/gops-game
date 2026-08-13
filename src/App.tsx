@@ -37,104 +37,125 @@ function SetupScreen({
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('medium')
 
   return (
-    <div className="screen setup">
-      <h1>
-        🎴 GOPS <span className="subtitle">Game of Pure Strategy</span>
-      </h1>
-      <p className="tagline">No luck after the flip. Just mind games. 😈</p>
-
-      <div className="setup__field">
-        <label>Opponent</label>
-        <div className="deck-choice">
-          <button
-            className={!vsAI ? 'chip chip--active' : 'chip'}
-            onClick={() => setVsAI(false)}
-          >
-            👥 2 Players
-          </button>
-          <button
-            className={vsAI ? 'chip chip--active' : 'chip'}
-            onClick={() => setVsAI(true)}
-          >
-            🤖 vs AI
-          </button>
+    <div className="setup-page">
+      <div className="setup-bg" aria-hidden="true" />
+      <div className="setup-stage">
+        <div className="setup-heading">
+          <p className="setup-eyebrow">Secret bidding, two players</p>
+          <h1>GOPS</h1>
         </div>
-      </div>
 
-      {vsAI && (
-        <div className="setup__field">
-          <label>AI difficulty</label>
-          <div className="deck-choice">
-            {AI_DIFFICULTIES.map((d) => (
-              <button
-                key={d.value}
-                className={aiDifficulty === d.value ? 'chip chip--active' : 'chip'}
-                onClick={() => setAiDifficulty(d.value)}
-              >
-                {d.label}
-              </button>
-            ))}
+        <div className="setup-panel">
+          <div className="setup-players">
+            <span className="avatar">P1</span>
+            <div className="player-field">
+              <input
+                value={p1}
+                onChange={(e) => setP1(e.target.value)}
+                placeholder="Player 1"
+                maxLength={20}
+              />
+            </div>
+            <span className="vs">VS</span>
+            {vsAI ? (
+              <span className="avatar avatar--ai">AI</span>
+            ) : (
+              <>
+                <div className="player-field">
+                  <input
+                    value={p2}
+                    onChange={(e) => setP2(e.target.value)}
+                    placeholder="Player 2"
+                    maxLength={20}
+                    style={{ textAlign: 'right' }}
+                  />
+                </div>
+                <span className="avatar">P2</span>
+              </>
+            )}
           </div>
-        </div>
-      )}
 
-      <div className="setup__field">
-        <label>Player 1 name</label>
-        <input
-          value={p1}
-          onChange={(e) => setP1(e.target.value)}
-          placeholder="Player 1"
-          maxLength={20}
-        />
-      </div>
-      {!vsAI && (
-        <div className="setup__field">
-          <label>Player 2 name</label>
-          <input
-            value={p2}
-            onChange={(e) => setP2(e.target.value)}
-            placeholder="Player 2"
-            maxLength={20}
-          />
-        </div>
-      )}
+          <div className="setup-hand" aria-hidden="true">
+            <Card value={7} suit="♠" size="sm" />
+            <Card value={12} suit="♥" size="sm" />
+            <Card value={11} suit="♣" size="sm" />
+            <Card value={0} faceDown size="sm" />
+            <Card value={0} faceDown size="sm" />
+          </div>
 
-      <div className="setup__field">
-        <label>Game length</label>
-        <div className="deck-choice">
+          <div className="field-group">
+            <span className="field-label">Opponent</span>
+            <div className="pill-row">
+              <button
+                className={!vsAI ? 'pill pill--active' : 'pill'}
+                onClick={() => setVsAI(false)}
+              >
+                2 Players
+              </button>
+              <button
+                className={vsAI ? 'pill pill--active' : 'pill'}
+                onClick={() => setVsAI(true)}
+              >
+                vs AI
+              </button>
+            </div>
+          </div>
+
+          {vsAI && (
+            <div className="field-group">
+              <span className="field-label">AI difficulty</span>
+              <div className="pill-row">
+                {AI_DIFFICULTIES.map((d) => (
+                  <button
+                    key={d.value}
+                    className={aiDifficulty === d.value ? 'pill pill--active' : 'pill'}
+                    onClick={() => setAiDifficulty(d.value)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="field-group">
+            <span className="field-label">Deck</span>
+            <div className="pill-row">
+              <button
+                className={deckSize === 10 ? 'pill pill--active' : 'pill'}
+                onClick={() => setDeckSize(10)}
+              >
+                A–10
+              </button>
+              <button
+                className={deckSize === 13 ? 'pill pill--active' : 'pill'}
+                onClick={() => setDeckSize(13)}
+              >
+                A–K
+              </button>
+            </div>
+          </div>
+
           <button
-            className={deckSize === 10 ? 'chip chip--active' : 'chip'}
-            onClick={() => setDeckSize(10)}
+            className="cta"
+            onClick={() => onStart(deckSize, p1, p2, vsAI, aiDifficulty)}
           >
-            A–10 (short)
-          </button>
-          <button
-            className={deckSize === 13 ? 'chip chip--active' : 'chip'}
-            onClick={() => setDeckSize(13)}
-          >
-            A–K (full)
+            Start game
           </button>
         </div>
+
+        <details className="setup-rules">
+          <summary>How to play</summary>
+          <ul>
+            <li>Each player holds the same set of cards (Ace–{deckSize === 13 ? 'King' : '10'}).</li>
+            <li>Each round, a prize card is flipped face up.</li>
+            <li>Both players secretly pick one card from their hand to bid.</li>
+            <li>Highest bid wins the prize card's value as points.</li>
+            <li>Ties carry the prize over to the next round.</li>
+            <li>Every card can only be used once. Highest total score wins!</li>
+          </ul>
+        </details>
       </div>
-
-      <button
-        className="btn btn--primary btn--big"
-        onClick={() => onStart(deckSize, p1, p2, vsAI, aiDifficulty)}
-      >
-        Start Game
-      </button>
-
-      <details className="rules">
-        <summary>How to play</summary>
-        <ul>
-          <li>Each player holds the same set of cards (Ace–{deckSize === 13 ? 'King' : '10'}).</li>
-          <li>Each round, a prize card is flipped face up.</li>
-          <li>Both players secretly pick one card from their hand to bid.</li>
-          <li>Highest bid wins the prize card's value as points.</li>
-          <li>Ties carry the prize over to the next round.</li>
-          <li>Every card can only be used once. Highest total score wins!</li>
-        </ul>
-      </details>
     </div>
   )
 }
