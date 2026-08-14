@@ -1,0 +1,101 @@
+import { supabase } from './supabaseClient'
+import { createInitialState, type AIDifficulty, type DeckSize, type GameState } from './game'
+
+export type Seat = 'p1' | 'p2'
+
+export interface OnlineIdentity {
+  roomCode: string
+  playerId: string
+  seat: Seat
+}
+
+export class RoomNotFoundError extends Error {
+  constructor(roomCode: string) {
+    super(`No room found with code "${roomCode}"`)
+    this.name = 'RoomNotFoundError'
+  }
+}
+
+export class RoomFullError extends Error {
+  constructor(roomCode: string) {
+    super(`Room "${roomCode}" already has two players`)
+    this.name = 'RoomFullError'
+  }
+}
+
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0/O/1/I
+
+export function generateRoomCode(): string {
+  let code = ''
+  for (let i = 0; i < 5; i++) {
+    code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
+  }
+  return code
+}
+
+export function generatePlayerId(): string {
+  return crypto.randomUUID()
+}
+
+interface RoomRow {
+  code: string
+  state: GameState
+  player_ids: { p1: string | null; p2: string | null }
+}
+
+export async function createRoom(
+  deckSize: DeckSize,
+  p1Name: string,
+): Promise<OnlineIdentity> {
+  const roomCode = generateRoomCode()
+  const playerId = generatePlayerId()
+  const initialState = createInitialState(deckSize, p1Name, '', false, 'medium' as AIDifficulty)
+
+  const { error } = await supabase
+    .from('rooms')
+    .insert({
+      code: roomCode,
+      state: initialState,
+      player_ids: { p1: playerId, p2: null },
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+
+  return { roomCode, playerId, seat: 'p1' }
+}
+
+export async function joinRoom(
+  roomCode: string,
+  p2Name: string,
+): Promise<OnlineIdentity> {
+  const { data: existing, error: fetchError } = await supabase
+    .from('rooms')
+    .select()
+    .eq('code', roomCode)
+    .maybeSingle()
+
+  if (fetchError) throw fetchError
+  if (!existing) throw new RoomNotFoundError(roomCode)
+
+  const row = existing as RoomRow
+  if (row.player_ids.p2) throw new RoomFullError(roomCode)
+
+  const playerId = generatePlayerId()
+  const updatedState: GameState = { ...row.state, p2Name: p2Name.trim() || 'Player 2' }
+
+  const { error: updateError } = await supabase
+    .from('rooms')
+    .update({
+      state: updatedState,
+      player_ids: { ...row.player_ids, p2: playerId },
+    })
+    .eq('code', roomCode)
+    .select()
+    .single()
+
+  if (updateError) throw updateError
+
+  return { roomCode, playerId, seat: 'p2' }
+}
