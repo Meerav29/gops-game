@@ -24,49 +24,51 @@ describe('generatePlayerId', () => {
 
 vi.mock('./supabaseClient', () => {
   const state = { rows: new Map<string, any>() }
-  return {
-    __supabaseTestState: state,
-    supabase: {
-      from: (table: string) => {
-        if (table !== 'rooms') throw new Error(`unexpected table ${table}`)
-        return {
-          insert: (row: any) => ({
+  const mockSupabase = {
+    from: (table: string) => {
+      if (table !== 'rooms') throw new Error(`unexpected table ${table}`)
+      return {
+        insert: (row: any) => ({
+          select: () => ({
+            single: async () => {
+              state.rows.set(row.code, row)
+              return { data: row, error: null }
+            },
+          }),
+        }),
+        select: () => ({
+          eq: (_col: string, code: string) => ({
+            maybeSingle: async () => {
+              const row = state.rows.get(code)
+              return { data: row ?? null, error: null }
+            },
+          }),
+        }),
+        update: (patch: any) => ({
+          eq: (_col: string, code: string) => ({
             select: () => ({
               single: async () => {
-                state.rows.set(row.code, row)
-                return { data: row, error: null }
-              },
-            }),
-          }),
-          select: () => ({
-            eq: (_col: string, code: string) => ({
-              maybeSingle: async () => {
                 const row = state.rows.get(code)
-                return { data: row ?? null, error: null }
+                const updated = { ...row, ...patch }
+                state.rows.set(code, updated)
+                return { data: updated, error: null }
               },
             }),
           }),
-          update: (patch: any) => ({
-            eq: (_col: string, code: string) => ({
-              select: () => ({
-                single: async () => {
-                  const row = state.rows.get(code)
-                  const updated = { ...row, ...patch }
-                  state.rows.set(code, updated)
-                  return { data: updated, error: null }
-                },
-              }),
-            }),
-          }),
-        }
-      },
-      channel: () => ({
-        on: () => ({
-          subscribe: () => {},
         }),
-      }),
-      removeChannel: () => {},
+      }
     },
+    channel: () => ({
+      on: () => ({
+        subscribe: () => {},
+      }),
+    }),
+    removeChannel: () => {},
+  }
+
+  return {
+    __supabaseTestState: state,
+    getSupabase: () => mockSupabase,
   }
 })
 
@@ -115,6 +117,37 @@ describe('writeRoomState', () => {
 
     const row = (__supabaseTestState as any).rows.get(created.roomCode)
     expect(row.state.p1Score).toBe(3)
+  })
+})
+
+describe('subscribeToRoom', () => {
+  it('fetches the current room row immediately and delivers it via onUpdate', async () => {
+    const { createRoom, subscribeToRoom } = await import('./online')
+    const created = await createRoom(13, 'Alice')
+
+    const updates: any[] = []
+    const unsubscribe = subscribeToRoom(created.roomCode, (update) => updates.push(update))
+
+    // the initial fetch is async; flush microtasks
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(updates).toHaveLength(1)
+    expect(updates[0].state.p1Name).toBe('Alice')
+    expect(updates[0].playerIds.p1).toBe(created.playerId)
+
+    unsubscribe()
+  })
+
+  it('does not call onUpdate when the room does not exist', async () => {
+    const { subscribeToRoom } = await import('./online')
+
+    const updates: any[] = []
+    const unsubscribe = subscribeToRoom('ZZZZZ', (update) => updates.push(update))
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(updates).toHaveLength(0)
+    unsubscribe()
   })
 })
 

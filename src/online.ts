@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+import { getSupabase } from './supabaseClient'
 import { createInitialState, type AIDifficulty, type DeckSize, type GameState } from './game'
 
 export type Seat = 'p1' | 'p2'
@@ -51,7 +51,7 @@ export async function createRoom(
   const playerId = generatePlayerId()
   const initialState = createInitialState(deckSize, p1Name, '', false, 'medium' as AIDifficulty)
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('rooms')
     .insert({
       code: roomCode,
@@ -70,6 +70,7 @@ export async function joinRoom(
   roomCode: string,
   p2Name: string,
 ): Promise<OnlineIdentity> {
+  const supabase = getSupabase()
   const { data: existing, error: fetchError } = await supabase
     .from('rooms')
     .select()
@@ -90,6 +91,7 @@ export async function joinRoom(
     .update({
       state: updatedState,
       player_ids: { ...row.player_ids, p2: playerId },
+      updated_at: new Date().toISOString(),
     })
     .eq('code', roomCode)
     .select()
@@ -101,7 +103,7 @@ export async function joinRoom(
 }
 
 export async function writeRoomState(roomCode: string, state: GameState): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('rooms')
     .update({ state, updated_at: new Date().toISOString() })
     .eq('code', roomCode)
@@ -121,22 +123,41 @@ export function subscribeToRoom(
   onUpdate: (update: RoomUpdate) => void,
   onStatusChange?: (status: 'connected' | 'reconnecting') => void,
 ): () => void {
+  const supabase = getSupabase()
+  let alive = true
+
   const channel = supabase
     .channel(`room:${roomCode}`)
     .on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${roomCode}` },
       (payload) => {
+        if (!alive) return
         const row = payload.new as RoomRow
         onUpdate({ state: row.state, playerIds: row.player_ids })
       },
     )
     .subscribe((status) => {
-      if (!onStatusChange) return
+      if (!alive || !onStatusChange) return
       onStatusChange(status === 'SUBSCRIBED' ? 'connected' : 'reconnecting')
     })
 
+  // Realtime only delivers *changes*; fetch the current row once up front so
+  // a client that just refreshed (and isn't the next one to write) doesn't
+  // sit on a blank/waiting screen forever waiting for someone else's write.
+  supabase
+    .from('rooms')
+    .select()
+    .eq('code', roomCode)
+    .maybeSingle()
+    .then(({ data, error }) => {
+      if (!alive || error || !data) return
+      const row = data as RoomRow
+      onUpdate({ state: row.state, playerIds: row.player_ids })
+    })
+
   return () => {
+    alive = false
     supabase.removeChannel(channel)
   }
 }

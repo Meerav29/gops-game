@@ -50,9 +50,14 @@ function SetupScreen({
   const [deckSize, setDeckSize] = useState<DeckSize>(13)
   const [p1, setP1] = useState('')
   const [p2, setP2] = useState('')
-  const [mode, setMode] = useState<OpponentMode>('local')
+  const [mode, setMode] = useState<OpponentMode>(() =>
+    new URLSearchParams(window.location.search).get('room') ? 'online' : 'local',
+  )
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('medium')
-  const [joinCode, setJoinCode] = useState('')
+  const [joinCode, setJoinCode] = useState(() => {
+    const room = new URLSearchParams(window.location.search).get('room')
+    return room ? room.toUpperCase() : ''
+  })
   const [onlineError, setOnlineError] = useState<string | null>(null)
   const [onlineBusy, setOnlineBusy] = useState(false)
 
@@ -353,7 +358,13 @@ function PassScreen({
   )
 }
 
-function RoomWaitingScreen({ roomCode }: { roomCode: string }) {
+function RoomWaitingScreen({
+  roomCode,
+  onLeave,
+}: {
+  roomCode: string
+  onLeave: () => void
+}) {
   const joinUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`
   return (
     <div className="screen center">
@@ -367,6 +378,9 @@ function RoomWaitingScreen({ roomCode }: { roomCode: string }) {
         value={joinUrl}
         onFocus={(e) => e.currentTarget.select()}
       />
+      <button className="btn-link" onClick={onLeave}>
+        Leave room
+      </button>
     </div>
   )
 }
@@ -553,14 +567,36 @@ export default function App() {
     setOnlineIdentity(identity)
   }
 
+  const handleLeaveRoom = () => {
+    clearOnlineIdentity()
+    setOnlineIdentity(null)
+  }
+
+  // Tracks which room-code+phase we've already auto-advanced out of
+  // 'pass-to-p2' for, so we dispatch proceedToP2 at most once per
+  // transition instead of on every render.
+  const passToP2Handled = useRef<string | null>(null)
+
+  const onlinePhase = onlineIdentity && onlineUpdate ? onlineUpdate.state.phase : null
+
+  useEffect(() => {
+    if (!onlineIdentity || !onlineUpdate) return
+    if (onlineUpdate.state.phase !== 'pass-to-p2') return
+    const key = `${onlineIdentity.roomCode}:${onlineUpdate.state.history.length}:${onlineUpdate.state.p2Bid ?? ''}`
+    if (passToP2Handled.current === key) return
+    passToP2Handled.current = key
+    writeRoomState(onlineIdentity.roomCode, proceedToP2(onlineUpdate.state))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineIdentity, onlinePhase])
+
   if (onlineIdentity) {
     if (!onlineUpdate) {
-      return <RoomWaitingScreen roomCode={onlineIdentity.roomCode} />
+      return <RoomWaitingScreen roomCode={onlineIdentity.roomCode} onLeave={handleLeaveRoom} />
     }
 
     const bothJoined = Boolean(onlineUpdate.playerIds.p1 && onlineUpdate.playerIds.p2)
     if (!bothJoined) {
-      return <RoomWaitingScreen roomCode={onlineIdentity.roomCode} />
+      return <RoomWaitingScreen roomCode={onlineIdentity.roomCode} onLeave={handleLeaveRoom} />
     }
 
     const onlineState = onlineUpdate.state
@@ -588,6 +624,13 @@ export default function App() {
               onSubmit={(bid) => dispatch(submitP1Bid(onlineState, bid))}
             />
           )
+        break
+      case 'pass-to-p2':
+        // Local hot-seat mode uses PassScreen to physically hand off the
+        // device; online play has no such handoff, so both clients just
+        // see a brief waiting state while the effect above auto-advances
+        // the room to 'p2-bid'.
+        phaseScreen = <WaitingOnOpponentScreen state={onlineState} />
         break
       case 'p2-bid':
         phaseScreen =
