@@ -99,3 +99,35 @@ export async function joinRoom(
 
   return { roomCode, playerId, seat: 'p2' }
 }
+
+export async function writeRoomState(roomCode: string, state: GameState): Promise<void> {
+  const { error } = await supabase
+    .from('rooms')
+    .update({ state, updated_at: new Date().toISOString() })
+    .eq('code', roomCode)
+    .select()
+    .single()
+
+  if (error) throw error
+}
+
+export function subscribeToRoom(
+  roomCode: string,
+  onUpdate: (state: GameState) => void,
+): () => void {
+  const channel = supabase
+    .channel(`room:${roomCode}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${roomCode}` },
+      (payload) => {
+        const row = payload.new as RoomRow
+        onUpdate(row.state)
+      },
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}

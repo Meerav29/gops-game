@@ -60,6 +60,12 @@ vi.mock('./supabaseClient', () => {
           }),
         }
       },
+      channel: () => ({
+        on: () => ({
+          subscribe: () => {},
+        }),
+      }),
+      removeChannel: () => {},
     },
   }
 })
@@ -93,5 +99,19 @@ describe('joinRoom', () => {
     const created = await createRoom(13, 'Alice')
     await joinRoom(created.roomCode, 'Bob')
     await expect(joinRoom(created.roomCode, 'Carol')).rejects.toThrow(RoomFullError)
+  })
+})
+
+describe('writeRoomState', () => {
+  it('persists a new state blob to the room row', async () => {
+    const { createRoom, writeRoomState } = await import('./online')
+    const created = await createRoom(13, 'Alice')
+    const { __supabaseTestState } = await import('./supabaseClient')
+    const nextState = { ...(__supabaseTestState as any).rows.get(created.roomCode).state, p1Score: 3 }
+
+    await writeRoomState(created.roomCode, nextState)
+
+    const row = (__supabaseTestState as any).rows.get(created.roomCode)
+    expect(row.state.p1Score).toBe(3)
   })
 })
