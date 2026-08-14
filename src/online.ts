@@ -111,9 +111,15 @@ export async function writeRoomState(roomCode: string, state: GameState): Promis
   if (error) throw error
 }
 
+export interface RoomUpdate {
+  state: GameState
+  playerIds: { p1: string | null; p2: string | null }
+}
+
 export function subscribeToRoom(
   roomCode: string,
-  onUpdate: (state: GameState) => void,
+  onUpdate: (update: RoomUpdate) => void,
+  onStatusChange?: (status: 'connected' | 'reconnecting') => void,
 ): () => void {
   const channel = supabase
     .channel(`room:${roomCode}`)
@@ -122,10 +128,13 @@ export function subscribeToRoom(
       { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${roomCode}` },
       (payload) => {
         const row = payload.new as RoomRow
-        onUpdate(row.state)
+        onUpdate({ state: row.state, playerIds: row.player_ids })
       },
     )
-    .subscribe()
+    .subscribe((status) => {
+      if (!onStatusChange) return
+      onStatusChange(status === 'SUBSCRIBED' ? 'connected' : 'reconnecting')
+    })
 
   return () => {
     supabase.removeChannel(channel)

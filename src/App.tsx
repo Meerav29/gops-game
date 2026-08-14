@@ -15,9 +15,12 @@ import {
 import {
   createRoom,
   joinRoom,
+  subscribeToRoom,
+  writeRoomState,
   RoomFullError,
   RoomNotFoundError,
   type OnlineIdentity,
+  type RoomUpdate,
 } from './online'
 
 const AI_DIFFICULTIES: { value: AIDifficulty; label: string }[] = [
@@ -347,6 +350,36 @@ function PassScreen({
   )
 }
 
+function RoomWaitingScreen({ roomCode }: { roomCode: string }) {
+  const joinUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`
+  return (
+    <div className="screen center">
+      <div className="pass-icon" />
+      <h2>Waiting for your opponent…</h2>
+      <p className="prompt">Share this code or link</p>
+      <p className="pass-name">{roomCode}</p>
+      <input
+        className="room-link"
+        readOnly
+        value={joinUrl}
+        onFocus={(e) => e.currentTarget.select()}
+      />
+    </div>
+  )
+}
+
+function WaitingOnOpponentScreen({ state }: { state: GameState }) {
+  return (
+    <div className="screen center">
+      <p className="round-label">Waiting for opponent's bid…</p>
+      <div className="prize-display">
+        <span>Prize on the table</span>
+        <Card value={state.currentPrize ?? 0} suit="♠" size="md" />
+      </div>
+    </div>
+  )
+}
+
 function RevealScreen({
   state,
   onNext,
@@ -492,53 +525,141 @@ function Scoreboard({ state, big = false }: { state: GameState; big?: boolean })
   )
 }
 
-export default function App() {
-  const [state, setState] = useState<GameState | null>(null)
+function useOnlineGame(identity: OnlineIdentity | null) {
+  const [update, setUpdate] = useState<RoomUpdate | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting'>('connected')
 
-  if (!state) {
+  useEffect(() => {
+    if (!identity) return
+    const unsubscribe = subscribeToRoom(identity.roomCode, setUpdate, setConnectionStatus)
+    return unsubscribe
+  }, [identity])
+
+  return { update, connectionStatus }
+}
+
+export default function App() {
+  const [localState, setLocalState] = useState<GameState | null>(null)
+  const [onlineIdentity, setOnlineIdentity] = useState<OnlineIdentity | null>(null)
+  const { update: onlineUpdate, connectionStatus } = useOnlineGame(onlineIdentity)
+
+  if (onlineIdentity) {
+    if (!onlineUpdate) {
+      return <RoomWaitingScreen roomCode={onlineIdentity.roomCode} />
+    }
+
+    const bothJoined = Boolean(onlineUpdate.playerIds.p1 && onlineUpdate.playerIds.p2)
+    if (!bothJoined) {
+      return <RoomWaitingScreen roomCode={onlineIdentity.roomCode} />
+    }
+
+    const onlineState = onlineUpdate.state
+    const mySeat = onlineIdentity.seat
+    const dispatch = (next: GameState) => writeRoomState(onlineIdentity.roomCode, next)
+
+    let phaseScreen: JSX.Element | null
+    switch (onlineState.phase) {
+      case 'prize-reveal':
+        phaseScreen = (
+          <PrizeRevealScreen
+            state={onlineState}
+            onFlip={() => dispatch(flipPrize(onlineState))}
+          />
+        )
+        break
+      case 'p1-bid':
+        phaseScreen =
+          mySeat !== 'p1' ? (
+            <WaitingOnOpponentScreen state={onlineState} />
+          ) : (
+            <BidScreen
+              state={onlineState}
+              who="p1"
+              onSubmit={(bid) => dispatch(submitP1Bid(onlineState, bid))}
+            />
+          )
+        break
+      case 'p2-bid':
+        phaseScreen =
+          mySeat !== 'p2' ? (
+            <WaitingOnOpponentScreen state={onlineState} />
+          ) : (
+            <BidScreen
+              state={onlineState}
+              who="p2"
+              onSubmit={(bid) => dispatch(submitP2Bid(onlineState, bid))}
+            />
+          )
+        break
+      case 'reveal':
+        phaseScreen = (
+          <RevealScreen state={onlineState} onNext={() => dispatch(nextRound(onlineState))} />
+        )
+        break
+      case 'game-over':
+        phaseScreen = (
+          <GameOverScreen state={onlineState} onRestart={() => setOnlineIdentity(null)} />
+        )
+        break
+      default:
+        phaseScreen = null
+    }
+
+    return (
+      <>
+        {connectionStatus === 'reconnecting' && (
+          <div className="connection-banner">Reconnecting…</div>
+        )}
+        {phaseScreen}
+      </>
+    )
+  }
+
+  if (!localState) {
     return (
       <SetupScreen
         onStart={(deckSize, p1, p2, vsAI, aiDifficulty) =>
-          setState(createInitialState(deckSize, p1, p2, vsAI, aiDifficulty))
+          setLocalState(createInitialState(deckSize, p1, p2, vsAI, aiDifficulty))
         }
+        onStartOnline={setOnlineIdentity}
       />
     )
   }
 
-  switch (state.phase) {
+  switch (localState.phase) {
     case 'prize-reveal':
       return (
-        <PrizeRevealScreen state={state} onFlip={() => setState(flipPrize(state))} />
+        <PrizeRevealScreen state={localState} onFlip={() => setLocalState(flipPrize(localState))} />
       )
     case 'p1-bid':
       return (
         <BidScreen
-          state={state}
+          state={localState}
           who="p1"
-          onSubmit={(bid) => setState(submitP1Bid(state, bid))}
+          onSubmit={(bid) => setLocalState(submitP1Bid(localState, bid))}
         />
       )
     case 'pass-to-p2':
       return (
         <PassScreen
-          nextPlayerName={state.p2Name}
-          onReady={() => setState(proceedToP2(state))}
+          nextPlayerName={localState.p2Name}
+          onReady={() => setLocalState(proceedToP2(localState))}
         />
       )
     case 'p2-bid':
       return (
         <BidScreen
-          state={state}
+          state={localState}
           who="p2"
-          onSubmit={(bid) => setState(submitP2Bid(state, bid))}
+          onSubmit={(bid) => setLocalState(submitP2Bid(localState, bid))}
         />
       )
     case 'reveal':
       return (
-        <RevealScreen state={state} onNext={() => setState(nextRound(state))} />
+        <RevealScreen state={localState} onNext={() => setLocalState(nextRound(localState))} />
       )
     case 'game-over':
-      return <GameOverScreen state={state} onRestart={() => setState(null)} />
+      return <GameOverScreen state={localState} onRestart={() => setLocalState(null)} />
     default:
       return null
   }

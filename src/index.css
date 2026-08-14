@@ -260,6 +260,38 @@ h1 {
   text-align: center;
 }
 
+.room-link {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--surface);
+  color: inherit;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.online-error {
+  color: #e5484d;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.connection-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  text-align: center;
+  padding: 0.4rem;
+  font-size: 0.8rem;
+  background: #b45309;
+  color: #fff;
+}
+
 .cta {
   border: none;
   border-radius: 999px;
