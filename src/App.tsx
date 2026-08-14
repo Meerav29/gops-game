@@ -17,6 +17,9 @@ import {
   joinRoom,
   subscribeToRoom,
   writeRoomState,
+  saveOnlineIdentity,
+  loadOnlineIdentity,
+  clearOnlineIdentity,
   RoomFullError,
   RoomNotFoundError,
   type OnlineIdentity,
@@ -540,8 +543,15 @@ function useOnlineGame(identity: OnlineIdentity | null) {
 
 export default function App() {
   const [localState, setLocalState] = useState<GameState | null>(null)
-  const [onlineIdentity, setOnlineIdentity] = useState<OnlineIdentity | null>(null)
+  const [onlineIdentity, setOnlineIdentity] = useState<OnlineIdentity | null>(
+    () => loadOnlineIdentity(),
+  )
   const { update: onlineUpdate, connectionStatus } = useOnlineGame(onlineIdentity)
+
+  const handleStartOnline = (identity: OnlineIdentity) => {
+    saveOnlineIdentity(identity)
+    setOnlineIdentity(identity)
+  }
 
   if (onlineIdentity) {
     if (!onlineUpdate) {
@@ -598,7 +608,13 @@ export default function App() {
         break
       case 'game-over':
         phaseScreen = (
-          <GameOverScreen state={onlineState} onRestart={() => setOnlineIdentity(null)} />
+          <GameOverScreen
+            state={onlineState}
+            onRestart={() => {
+              clearOnlineIdentity()
+              setOnlineIdentity(null)
+            }}
+          />
         )
         break
       default:
@@ -621,7 +637,7 @@ export default function App() {
         onStart={(deckSize, p1, p2, vsAI, aiDifficulty) =>
           setLocalState(createInitialState(deckSize, p1, p2, vsAI, aiDifficulty))
         }
-        onStartOnline={setOnlineIdentity}
+        onStartOnline={handleStartOnline}
       />
     )
   }

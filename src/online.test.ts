@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateRoomCode, generatePlayerId } from './online'
 
 describe('generateRoomCode', () => {
@@ -115,5 +115,30 @@ describe('writeRoomState', () => {
 
     const row = (__supabaseTestState as any).rows.get(created.roomCode)
     expect(row.state.p1Score).toBe(3)
+  })
+})
+
+describe('online identity persistence', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('round-trips an identity through save/load', async () => {
+    const { saveOnlineIdentity, loadOnlineIdentity } = await import('./online')
+    const identity = { roomCode: 'ABCDE', playerId: 'p-1', seat: 'p1' as const }
+    saveOnlineIdentity(identity)
+    expect(loadOnlineIdentity()).toEqual(identity)
+  })
+
+  it('returns null when nothing is saved', async () => {
+    const { loadOnlineIdentity } = await import('./online')
+    expect(loadOnlineIdentity()).toBeNull()
+  })
+
+  it('clearOnlineIdentity removes the saved identity', async () => {
+    const { saveOnlineIdentity, loadOnlineIdentity, clearOnlineIdentity } = await import('./online')
+    saveOnlineIdentity({ roomCode: 'ABCDE', playerId: 'p-1', seat: 'p1' })
+    clearOnlineIdentity()
+    expect(loadOnlineIdentity()).toBeNull()
   })
 })

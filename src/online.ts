@@ -140,3 +140,23 @@ export function subscribeToRoom(
     supabase.removeChannel(channel)
   }
 }
+
+const STORAGE_KEY = 'gops-online-identity'
+
+export function saveOnlineIdentity(identity: OnlineIdentity): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(identity))
+}
+
+export function loadOnlineIdentity(): OnlineIdentity | null {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as OnlineIdentity
+  } catch {
+    return null
+  }
+}
+
+export function clearOnlineIdentity(): void {
+  localStorage.removeItem(STORAGE_KEY)
+}
