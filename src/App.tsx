@@ -12,6 +12,13 @@ import {
   type DeckSize,
   type GameState,
 } from './game'
+import {
+  createRoom,
+  joinRoom,
+  RoomFullError,
+  RoomNotFoundError,
+  type OnlineIdentity,
+} from './online'
 
 const AI_DIFFICULTIES: { value: AIDifficulty; label: string }[] = [
   { value: 'easy', label: '🙂 Easy' },
@@ -19,8 +26,11 @@ const AI_DIFFICULTIES: { value: AIDifficulty; label: string }[] = [
   { value: 'hard', label: '😈 Hard' },
 ]
 
+type OpponentMode = 'local' | 'ai' | 'online'
+
 function SetupScreen({
   onStart,
+  onStartOnline,
 }: {
   onStart: (
     deckSize: DeckSize,
@@ -29,12 +39,50 @@ function SetupScreen({
     vsAI: boolean,
     aiDifficulty: AIDifficulty,
   ) => void
+  onStartOnline: (identity: OnlineIdentity) => void
 }) {
   const [deckSize, setDeckSize] = useState<DeckSize>(13)
   const [p1, setP1] = useState('')
   const [p2, setP2] = useState('')
-  const [vsAI, setVsAI] = useState(false)
+  const [mode, setMode] = useState<OpponentMode>('local')
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('medium')
+  const [joinCode, setJoinCode] = useState('')
+  const [onlineError, setOnlineError] = useState<string | null>(null)
+  const [onlineBusy, setOnlineBusy] = useState(false)
+
+  async function handleCreateRoom() {
+    setOnlineError(null)
+    setOnlineBusy(true)
+    try {
+      const identity = await createRoom(deckSize, p1)
+      onStartOnline(identity)
+    } catch (err) {
+      setOnlineError(err instanceof Error ? err.message : 'Failed to create room')
+    } finally {
+      setOnlineBusy(false)
+    }
+  }
+
+  async function handleJoinRoom() {
+    setOnlineError(null)
+    setOnlineBusy(true)
+    try {
+      const identity = await joinRoom(joinCode.trim().toUpperCase(), p1)
+      onStartOnline(identity)
+    } catch (err) {
+      if (err instanceof RoomNotFoundError) {
+        setOnlineError('No room found with that code.')
+      } else if (err instanceof RoomFullError) {
+        setOnlineError('That room already has two players.')
+      } else {
+        setOnlineError(err instanceof Error ? err.message : 'Failed to join room')
+      }
+    } finally {
+      setOnlineBusy(false)
+    }
+  }
+
+  const deckLocked = mode === 'online' && joinCode.trim().length > 0
 
   return (
     <div className="setup-page">
@@ -46,34 +94,48 @@ function SetupScreen({
         </div>
 
         <div className="setup-panel">
-          <div className="setup-players">
-            <span className="avatar">P1</span>
-            <div className="player-field">
-              <input
-                value={p1}
-                onChange={(e) => setP1(e.target.value)}
-                placeholder="Player 1"
-                maxLength={20}
-              />
+          {mode === 'online' ? (
+            <div className="setup-players">
+              <span className="avatar">P1</span>
+              <div className="player-field">
+                <input
+                  value={p1}
+                  onChange={(e) => setP1(e.target.value)}
+                  placeholder="Your name"
+                  maxLength={20}
+                />
+              </div>
             </div>
-            <span className="vs">VS</span>
-            {vsAI ? (
-              <span className="avatar avatar--ai">AI</span>
-            ) : (
-              <>
-                <div className="player-field">
-                  <input
-                    value={p2}
-                    onChange={(e) => setP2(e.target.value)}
-                    placeholder="Player 2"
-                    maxLength={20}
-                    style={{ textAlign: 'right' }}
-                  />
-                </div>
-                <span className="avatar">P2</span>
-              </>
-            )}
-          </div>
+          ) : (
+            <div className="setup-players">
+              <span className="avatar">P1</span>
+              <div className="player-field">
+                <input
+                  value={p1}
+                  onChange={(e) => setP1(e.target.value)}
+                  placeholder="Player 1"
+                  maxLength={20}
+                />
+              </div>
+              <span className="vs">VS</span>
+              {mode === 'ai' ? (
+                <span className="avatar avatar--ai">AI</span>
+              ) : (
+                <>
+                  <div className="player-field">
+                    <input
+                      value={p2}
+                      onChange={(e) => setP2(e.target.value)}
+                      placeholder="Player 2"
+                      maxLength={20}
+                      style={{ textAlign: 'right' }}
+                    />
+                  </div>
+                  <span className="avatar">P2</span>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="setup-hand" aria-hidden="true">
             <Card value={7} suit="♠" size="sm" />
@@ -87,21 +149,40 @@ function SetupScreen({
             <span className="field-label">Opponent</span>
             <div className="pill-row">
               <button
-                className={!vsAI ? 'pill pill--active' : 'pill'}
-                onClick={() => setVsAI(false)}
+                className={mode === 'local' ? 'pill pill--active' : 'pill'}
+                onClick={() => setMode('local')}
               >
                 2 Players
               </button>
               <button
-                className={vsAI ? 'pill pill--active' : 'pill'}
-                onClick={() => setVsAI(true)}
+                className={mode === 'ai' ? 'pill pill--active' : 'pill'}
+                onClick={() => setMode('ai')}
               >
                 vs AI
+              </button>
+              <button
+                className={mode === 'online' ? 'pill pill--active' : 'pill'}
+                onClick={() => setMode('online')}
+              >
+                Online
               </button>
             </div>
           </div>
 
-          {vsAI && (
+          {mode === 'online' && (
+            <div className="field-group">
+              <span className="field-label">Join code (leave blank to create a room)</span>
+              <input
+                className="text-input"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Room code"
+                maxLength={5}
+              />
+            </div>
+          )}
+
+          {mode === 'ai' && (
             <div className="field-group">
               <span className="field-label">AI difficulty</span>
               <div className="pill-row">
@@ -124,24 +205,42 @@ function SetupScreen({
               <button
                 className={deckSize === 10 ? 'pill pill--active' : 'pill'}
                 onClick={() => setDeckSize(10)}
+                disabled={deckLocked}
               >
                 A–10
               </button>
               <button
                 className={deckSize === 13 ? 'pill pill--active' : 'pill'}
                 onClick={() => setDeckSize(13)}
+                disabled={deckLocked}
               >
                 A–K
               </button>
             </div>
           </div>
 
-          <button
-            className="cta"
-            onClick={() => onStart(deckSize, p1, p2, vsAI, aiDifficulty)}
-          >
-            Start game
-          </button>
+          {onlineError && <p className="setup-online-error">{onlineError}</p>}
+
+          {mode === 'online' ? (
+            <button
+              className="cta"
+              disabled={onlineBusy}
+              onClick={joinCode.trim() ? handleJoinRoom : handleCreateRoom}
+            >
+              {onlineBusy
+                ? 'Please wait…'
+                : joinCode.trim()
+                  ? 'Join Room'
+                  : 'Create Room'}
+            </button>
+          ) : (
+            <button
+              className="cta"
+              onClick={() => onStart(deckSize, p1, p2, mode === 'ai', aiDifficulty)}
+            >
+              Start game
+            </button>
+          )}
         </div>
 
         <details className="setup-rules">

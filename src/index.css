@@ -224,6 +224,42 @@ h1 {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
+.pill:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.text-input {
+  width: 100%;
+  background: #1c1c20;
+  border: none;
+  border-radius: 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.7rem 0.85rem;
+}
+
+.text-input::placeholder {
+  color: var(--text-dim);
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+.text-input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.setup-online-error {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .cta {
   border: none;
   border-radius: 999px;
@@ -234,6 +270,11 @@ h1 {
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.cta:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .setup-rules {
