@@ -27,9 +27,9 @@ import {
 } from './online'
 
 const AI_DIFFICULTIES: { value: AIDifficulty; label: string }[] = [
-  { value: 'easy', label: '🙂 Easy' },
-  { value: 'medium', label: '😐 Medium' },
-  { value: 'hard', label: '😈 Hard' },
+  { value: 'easy', label: 'Easy' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'hard', label: 'Hard' },
 ]
 
 type OpponentMode = 'local' | 'ai' | 'online'
@@ -96,176 +96,140 @@ function SetupScreen({
   const deckLocked = mode === 'online' && joinCode.trim().length > 0
 
   return (
-    <div className="setup-page">
-      <div className="setup-bg" aria-hidden="true" />
-      <div className="setup-stage">
-        <div className="setup-heading">
-          <p className="setup-eyebrow">Secret bidding, two players</p>
-          <h1>GOPS</h1>
+    <div className="screen setup">
+      <h1>
+        GOPS <span className="subtitle">Game of Pure Strategy</span>
+      </h1>
+      <p className="tagline">No luck after the flip. Just mind games.</p>
+
+      <div className="setup__field">
+        <label>Opponent</label>
+        <div className="deck-choice">
+          <button
+            className={mode === 'local' ? 'chip chip--active' : 'chip'}
+            onClick={() => setMode('local')}
+          >
+            2 Players
+          </button>
+          <button
+            className={mode === 'ai' ? 'chip chip--active' : 'chip'}
+            onClick={() => setMode('ai')}
+          >
+            vs AI
+          </button>
+          <button
+            className={mode === 'online' ? 'chip chip--active' : 'chip'}
+            onClick={() => setMode('online')}
+          >
+            Online
+          </button>
         </div>
-
-        <div className="setup-panel">
-          {mode === 'online' ? (
-            <div className="setup-players">
-              <span className="avatar">P1</span>
-              <div className="player-field">
-                <input
-                  value={p1}
-                  onChange={(e) => setP1(e.target.value)}
-                  placeholder="Your name"
-                  maxLength={20}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="setup-players">
-              <span className="avatar">P1</span>
-              <div className="player-field">
-                <input
-                  value={p1}
-                  onChange={(e) => setP1(e.target.value)}
-                  placeholder="Player 1"
-                  maxLength={20}
-                />
-              </div>
-              <span className="vs">VS</span>
-              {mode === 'ai' ? (
-                <span className="avatar avatar--ai">AI</span>
-              ) : (
-                <>
-                  <div className="player-field">
-                    <input
-                      value={p2}
-                      onChange={(e) => setP2(e.target.value)}
-                      placeholder="Player 2"
-                      maxLength={20}
-                      style={{ textAlign: 'right' }}
-                    />
-                  </div>
-                  <span className="avatar">P2</span>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className="setup-hand" aria-hidden="true">
-            <Card value={7} suit="♠" size="sm" />
-            <Card value={12} suit="♥" size="sm" />
-            <Card value={11} suit="♣" size="sm" />
-            <Card value={0} faceDown size="sm" />
-            <Card value={0} faceDown size="sm" />
-          </div>
-
-          <div className="field-group">
-            <span className="field-label">Opponent</span>
-            <div className="pill-row">
-              <button
-                className={mode === 'local' ? 'pill pill--active' : 'pill'}
-                onClick={() => setMode('local')}
-              >
-                2 Players
-              </button>
-              <button
-                className={mode === 'ai' ? 'pill pill--active' : 'pill'}
-                onClick={() => setMode('ai')}
-              >
-                vs AI
-              </button>
-              <button
-                className={mode === 'online' ? 'pill pill--active' : 'pill'}
-                onClick={() => setMode('online')}
-              >
-                Online
-              </button>
-            </div>
-          </div>
-
-          {mode === 'online' && (
-            <div className="field-group">
-              <span className="field-label">Join code (leave blank to create a room)</span>
-              <input
-                className="text-input"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="Room code"
-                maxLength={5}
-              />
-            </div>
-          )}
-
-          {mode === 'ai' && (
-            <div className="field-group">
-              <span className="field-label">AI difficulty</span>
-              <div className="pill-row">
-                {AI_DIFFICULTIES.map((d) => (
-                  <button
-                    key={d.value}
-                    className={aiDifficulty === d.value ? 'pill pill--active' : 'pill'}
-                    onClick={() => setAiDifficulty(d.value)}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="field-group">
-            <span className="field-label">Deck</span>
-            <div className="pill-row">
-              <button
-                className={deckSize === 10 ? 'pill pill--active' : 'pill'}
-                onClick={() => setDeckSize(10)}
-                disabled={deckLocked}
-              >
-                A–10
-              </button>
-              <button
-                className={deckSize === 13 ? 'pill pill--active' : 'pill'}
-                onClick={() => setDeckSize(13)}
-                disabled={deckLocked}
-              >
-                A–K
-              </button>
-            </div>
-          </div>
-
-          {onlineError && <p className="setup-online-error">{onlineError}</p>}
-
-          {mode === 'online' ? (
-            <button
-              className="cta"
-              disabled={onlineBusy}
-              onClick={joinCode.trim() ? handleJoinRoom : handleCreateRoom}
-            >
-              {onlineBusy
-                ? 'Please wait…'
-                : joinCode.trim()
-                  ? 'Join Room'
-                  : 'Create Room'}
-            </button>
-          ) : (
-            <button
-              className="cta"
-              onClick={() => onStart(deckSize, p1, p2, mode === 'ai', aiDifficulty)}
-            >
-              Start game
-            </button>
-          )}
-        </div>
-
-        <details className="setup-rules">
-          <summary>How to play</summary>
-          <ul>
-            <li>Each player holds the same set of cards (Ace–{deckSize === 13 ? 'King' : '10'}).</li>
-            <li>Each round, a prize card is flipped face up.</li>
-            <li>Both players secretly pick one card from their hand to bid.</li>
-            <li>Highest bid wins the prize card's value as points.</li>
-            <li>Ties carry the prize over to the next round.</li>
-            <li>Every card can only be used once. Highest total score wins!</li>
-          </ul>
-        </details>
       </div>
+
+      {mode === 'ai' && (
+        <div className="setup__field">
+          <label>AI difficulty</label>
+          <div className="deck-choice">
+            {AI_DIFFICULTIES.map((d) => (
+              <button
+                key={d.value}
+                className={aiDifficulty === d.value ? 'chip chip--active' : 'chip'}
+                onClick={() => setAiDifficulty(d.value)}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="setup__field">
+        <label>{mode === 'online' ? 'Your name' : 'Player 1 name'}</label>
+        <input
+          value={p1}
+          onChange={(e) => setP1(e.target.value)}
+          placeholder="Player 1"
+          maxLength={20}
+        />
+      </div>
+      {mode === 'local' && (
+        <div className="setup__field">
+          <label>Player 2 name</label>
+          <input
+            value={p2}
+            onChange={(e) => setP2(e.target.value)}
+            placeholder="Player 2"
+            maxLength={20}
+          />
+        </div>
+      )}
+
+      {mode === 'online' && (
+        <div className="setup__field">
+          <label>Join code (leave blank to create a room)</label>
+          <input
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder="Room code"
+            maxLength={5}
+          />
+        </div>
+      )}
+
+      <div className="setup__field">
+        <label>Game length</label>
+        <div className="deck-choice">
+          <button
+            className={deckSize === 10 ? 'chip chip--active' : 'chip'}
+            onClick={() => setDeckSize(10)}
+            disabled={deckLocked}
+          >
+            A–10 (short)
+          </button>
+          <button
+            className={deckSize === 13 ? 'chip chip--active' : 'chip'}
+            onClick={() => setDeckSize(13)}
+            disabled={deckLocked}
+          >
+            A–K (full)
+          </button>
+        </div>
+      </div>
+
+      {onlineError && <p className="online-error">{onlineError}</p>}
+
+      {mode === 'online' ? (
+        <button
+          className="btn btn--primary btn--big"
+          disabled={onlineBusy}
+          onClick={joinCode.trim() ? handleJoinRoom : handleCreateRoom}
+        >
+          {onlineBusy
+            ? 'Please wait…'
+            : joinCode.trim()
+              ? 'Join Room'
+              : 'Create Room'}
+        </button>
+      ) : (
+        <button
+          className="btn btn--primary btn--big"
+          onClick={() => onStart(deckSize, p1, p2, mode === 'ai', aiDifficulty)}
+        >
+          Start Game
+        </button>
+      )}
+
+      <details className="rules">
+        <summary>How to play</summary>
+        <ul>
+          <li>Each player holds the same set of cards (Ace–{deckSize === 13 ? 'King' : '10'}).</li>
+          <li>Each round, a prize card is flipped face up.</li>
+          <li>Both players secretly pick one card from their hand to bid.</li>
+          <li>Highest bid wins the prize card's value as points.</li>
+          <li>Ties carry the prize over to the next round.</li>
+          <li>Every card can only be used once. Highest total score wins!</li>
+        </ul>
+      </details>
     </div>
   )
 }
@@ -285,7 +249,7 @@ function PrizeRevealScreen({
       <p className="prompt">Flip the next prize card</p>
       <Card value={0} faceDown size="lg" onClick={onFlip} />
       {state.pot > 0 && (
-        <p className="pot-note">🤝 {state.pot} points carried over from a tie!</p>
+        <p className="pot-note">{state.pot} points carried over from a tie</p>
       )}
     </div>
   )
@@ -347,10 +311,10 @@ function PassScreen({
 }) {
   return (
     <div className="screen center">
-      <p className="pass-icon">🔄</p>
+      <div className="pass-icon" />
       <h2>Pass the device to</h2>
       <h1 className="pass-name">{nextPlayerName}</h1>
-      <p className="prompt">Don't peek! 🙈</p>
+      <p className="prompt">Don't peek</p>
       <button className="btn btn--primary btn--big" onClick={onReady}>
         I'm Ready
       </button>
@@ -431,9 +395,9 @@ function RevealScreen({
         Prize: {cardLabel(last.prizeValue)} ({last.prizeValue} pts)
       </p>
       {winnerName ? (
-        <p className="winner-banner winner-banner--pop">🏆 {winnerName} wins this round!</p>
+        <p className="winner-banner winner-banner--pop">{winnerName} wins this round</p>
       ) : (
-        <p className="winner-banner tie">🤝 Tie! Prize carries over.</p>
+        <p className="winner-banner tie">Tie — prize carries over</p>
       )}
       <Scoreboard state={state} />
       <button className="btn btn--primary btn--big" onClick={onNext}>
@@ -443,15 +407,12 @@ function RevealScreen({
   )
 }
 
-const CONFETTI_EMOJI = ['🎉', '✨', '🎊', '⭐']
-
 function Confetti() {
-  const pieces = Array.from({ length: 16 }, (_, i) => ({
+  const pieces = Array.from({ length: 20 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 0.3,
     duration: 0.9 + Math.random() * 0.6,
-    emoji: CONFETTI_EMOJI[i % CONFETTI_EMOJI.length],
   }))
 
   return (
@@ -465,9 +426,7 @@ function Confetti() {
             animationDelay: `${p.delay}s`,
             animationDuration: `${p.duration}s`,
           }}
-        >
-          {p.emoji}
-        </span>
+        />
       ))}
     </div>
   )
@@ -489,12 +448,12 @@ function GameOverScreen({
 
   return (
     <div className="screen center">
-      <p className="pass-icon">🏁</p>
+      <div className="pass-icon" />
       <h1>Game Over</h1>
       {winner ? (
-        <h2 className="winner-banner">🎉 {winner} wins the game!</h2>
+        <h2 className="winner-banner">{winner} wins the game</h2>
       ) : (
-        <h2 className="winner-banner tie">🤝 It's a tie!</h2>
+        <h2 className="winner-banner tie">It's a tie</h2>
       )}
       <Scoreboard state={state} big />
       <button className="btn btn--primary btn--big" onClick={onRestart}>
@@ -520,6 +479,10 @@ function useScoreBump(score: number) {
   return bump
 }
 
+function initials(name: string) {
+  return name.trim().slice(0, 1).toUpperCase() || '?'
+}
+
 function Scoreboard({ state, big = false }: { state: GameState; big?: boolean }) {
   const p1Bump = useScoreBump(state.p1Score)
   const p2Bump = useScoreBump(state.p2Score)
@@ -527,12 +490,14 @@ function Scoreboard({ state, big = false }: { state: GameState; big?: boolean })
   return (
     <div className={big ? 'scoreboard scoreboard--big' : 'scoreboard'}>
       <div className="score">
+        <span className="score__avatar">{initials(state.p1Name)}</span>
         <span className="score__name">{state.p1Name}</span>
         <span className={p1Bump ? 'score__value score__value--bump' : 'score__value'}>
           {state.p1Score}
         </span>
       </div>
       <div className="score">
+        <span className="score__avatar">{initials(state.p2Name)}</span>
         <span className="score__name">{state.p2Name}</span>
         <span className={p2Bump ? 'score__value score__value--bump' : 'score__value'}>
           {state.p2Score}

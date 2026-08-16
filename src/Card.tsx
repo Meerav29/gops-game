@@ -35,14 +35,7 @@ export default function Card({
 
   if (faceDown) {
     return (
-      <button
-        type="button"
-        className={classes}
-        onClick={onClick}
-        disabled={!onClick}
-      >
-        <span className="card__pattern">✦</span>
-      </button>
+      <button type="button" className={classes} onClick={onClick} disabled={!onClick} />
     )
   }
 
@@ -51,22 +44,12 @@ export default function Card({
   return (
     <button
       type="button"
-      className={classes}
+      className={classes + (isRed ? ' card--red' : ' card--black')}
       onClick={onClick}
       disabled={!onClick}
-      style={{ color: isRed ? '#e0446b' : '#1f2430' }}
     >
-      <span className="card__corner card__corner--tl">
-        {cardLabel(value)}
-        <br />
-        {suit}
-      </span>
-      <span className="card__center">{suit}</span>
-      <span className="card__corner card__corner--br">
-        {cardLabel(value)}
-        <br />
-        {suit}
-      </span>
+      <span className="card__value">{cardLabel(value)}</span>
+      <span className="card__suit">{suit}</span>
     </button>
   )
 }
